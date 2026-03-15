@@ -1,147 +1,127 @@
-# CASH Transfer UI
+# cash-transfer-ui
 
-One-click web UI to transfer CASH tokens on Solana via [AgentWallet](https://frames.ag) — no CLI, no SOL needed for gas.
+> One-click bash script generator for transferring CASH tokens on Solana via [AgentWallet](https://frames.ag).
 
-🔗 **Live demo:** `https://YOUR-USERNAME.github.io/cash-transfer-ui`
-
----
-
-## What it does
-
-Automates the full transfer flow in a single click:
-
-1. **Check balance** — fetches CASH balance from your AgentWallet account
-2. **Query source token account** — finds your CASH token account on-chain
-3. **Query destination token account** — finds recipient's CASH token account
-4. **Encode instruction** — builds a `transferChecked` instruction for SPL Token 2022
-5. **Broadcast** — sends transaction via AgentWallet's sponsored gas endpoint
+🔗 **Live:** https://wrvnnull.github.io/cash-transfer-ui/
 
 ---
 
-## Deploy to GitHub Pages
+## What is this?
 
-```bash
-# 1. Fork or clone this repo
-git clone https://github.com/YOUR-USERNAME/cash-transfer-ui
-cd cash-transfer-ui
+A static web UI that generates a ready-to-run bash script for transferring CASH tokens (SPL Token 2022) using the AgentWallet API — no wallet extension needed, no SOL for gas.
 
-# 2. Push to GitHub
-git add .
-git commit -m "init"
-git push origin main
+**Why a script and not a direct web app?**  
+GitHub Pages can't directly call `frames.ag` due to browser CORS restrictions. Instead, this tool generates a bash script you paste into your terminal — same result, no CORS issue.
 
-# 3. Enable GitHub Pages
-# Go to: Settings → Pages → Source → Deploy from branch → main / (root)
+---
+
+## How to use
+
+1. Open https://wrvnnull.github.io/cash-transfer-ui/
+2. Fill in:
+   - **Username** — your AgentWallet username
+   - **API Token** — your `mf_...` token
+   - **Destination** — recipient's Solana wallet address
+3. Click **Generate Script**
+4. Click **Copy Script**
+5. Paste into terminal → Enter
+
+The script handles everything automatically:
+
 ```
+[1/5] Checking balance...
+  ✓ Solana: H2SGfc...dvRR
+  ✓ CASH  : 1167000 (raw)
+[2/5] Source token account...
+  ✓ 2PAGDh...nc6u
+[3/5] Destination token account...
+  ✓ 3P5jhz...EBGV
+[4/5] Encoding instruction...
+  ✓ data: DJjOEQAAAAAABg==
+[5/5] Broadcasting transaction...
 
-Your UI will be live at `https://YOUR-USERNAME.github.io/cash-transfer-ui`
+╔══════════════════════════════════╗
+║  ✓ Transfer Confirmed!           ║
+╚══════════════════════════════════╝
 
----
-
-## Usage
-
-Fill in three fields and click **Run All Steps**:
-
-| Field | Description |
-|-------|-------------|
-| **Username** | Your AgentWallet username |
-| **API Token** | Your `mf_...` token from `~/.agentwallet/config.json` |
-| **Destination** | Solana wallet address of the recipient |
-
-The tool transfers **all** available CASH balance to the destination.
+  Gas free : true
+  Explorer : https://solscan.io/tx/...
+```
 
 ---
 
 ## Requirements
 
-- AgentWallet account ([sign up](https://frames.ag))
-- CASH token in your wallet
-- Destination wallet must have an existing CASH token account
-
-> **Gas:** AgentWallet sponsors gas fees automatically after 24h from account creation.  
-> If your account is new (< 24h), wait until sponsorship activates or send a small amount of SOL to your Solana wallet.
+- `curl` — for API calls
+- `node` — for encoding the transfer instruction
+- An [AgentWallet](https://frames.ag) account with CASH balance
+- Recipient wallet must already have a CASH token account
 
 ---
 
-## Running locally
+## Gas sponsorship
 
-If GitHub Pages returns CORS errors, run locally:
+AgentWallet sponsors Solana gas fees automatically.
 
-```bash
-# Python
-python3 -m http.server 8080
+| Account age | Gas status |
+|-------------|------------|
+| < 24 hours  | Not sponsored yet |
+| ≥ 24 hours  | Free ✓ |
 
-# Node
-npx serve .
+If your account is new and you see this error:
+
+```
+⚠ Gas not active yet (account <24h). Wait or send SOL to: ...
 ```
 
-Then open `http://localhost:8080`
+**Option A:** Wait until 24h after account creation, then re-run the same script.  
+**Option B:** Send a small amount of SOL to your Solana wallet address, then re-run.
 
 ---
 
-## Manual curl reference
+## Technical notes
 
-If you prefer the terminal, here are the equivalent curl commands:
+CASH is an **SPL Token 2022** with a `transferHook` extension. The standard AgentWallet transfer endpoint (`transfer-solana`) does not support `cash` as an asset — it only accepts `sol` and `usdc`.
 
-### 1. Check balance
-```bash
-curl https://frames.ag/api/wallets/{USERNAME}/balances \
-  -H "Authorization: Bearer {API_TOKEN}"
-```
+This tool works around that by:
+1. Fetching token accounts directly from the Solana RPC
+2. Building a `transferChecked` instruction manually (10-byte encoded)
+3. Sending it via AgentWallet's `contract-call` endpoint
 
-### 2. Get source token account
-```bash
-curl -s https://api.mainnet-beta.solana.com \
-  -X POST -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"getTokenAccountsByOwner","params":["{SOLANA_ADDRESS}",{"mint":"CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH"},{"encoding":"jsonParsed"}]}'
-```
-
-### 3. Get destination token account
-Same as above but replace `{SOLANA_ADDRESS}` with the recipient's address.
-
-### 4. Transfer (replace values from steps above)
-```bash
-curl -X POST "https://frames.ag/api/wallets/{USERNAME}/actions/contract-call" \
-  -H "Authorization: Bearer {API_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "chainType": "solana",
-    "instructions": [{
-      "programId": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
-      "accounts": [
-        {"pubkey": "{SOURCE_TOKEN_ACCOUNT}",      "isSigner": false, "isWritable": true},
-        {"pubkey": "CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH", "isSigner": false, "isWritable": false},
-        {"pubkey": "{DESTINATION_TOKEN_ACCOUNT}", "isSigner": false, "isWritable": true},
-        {"pubkey": "{YOUR_SOLANA_ADDRESS}",       "isSigner": true,  "isWritable": false}
-      ],
-      "data": "{ENCODED_DATA}"
-    }],
-    "network": "mainnet"
-  }'
-```
-
-### Encoding `data` (Node.js)
+### Instruction encoding (Node.js)
 ```js
-function encodeTransferChecked(amount, decimals) {
-  const buf = new Uint8Array(10);
-  buf[0] = 12; // discriminator
-  let amt = BigInt(amount);
-  for (let i = 0; i < 8; i++) { buf[1+i] = Number(amt & 0xffn); amt >>= 8n; }
-  buf[9] = decimals;
-  return Buffer.from(buf).toString('base64');
+const buf = Buffer.alloc(10);
+buf[0] = 12;                          // transferChecked discriminator
+let amt = BigInt(rawAmount);
+for (let i = 0; i < 8; i++) {
+  buf[1+i] = Number(amt & 0xffn);
+  amt >>= 8n;
 }
-
-console.log(encodeTransferChecked(1167000, 6)); // → DJjOEQAAAAAABg==
+buf[9] = 6;                           // decimals
+console.log(buf.toString('base64')); // e.g. DJjOEQAAAAAABg==
 ```
 
----
-
-## Reference
-
-| Item | Value |
-|------|-------|
+### Key addresses
+| Item | Address |
+|------|---------|
 | CASH Mint | `CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH` |
 | SPL Token 2022 Program | `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb` |
 | Solana RPC | `https://api.mainnet-beta.solana.com` |
 | AgentWallet API | `https://frames.ag/api` |
-| CASH decimals | `6` |
+
+---
+
+## Run locally
+
+```bash
+git clone https://github.com/wrvnnull/cash-transfer-ui
+cd cash-transfer-ui
+python3 -m http.server 8080
+# open http://localhost:8080
+```
+
+---
+
+## License
+
+MIT
