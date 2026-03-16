@@ -40,10 +40,10 @@
   .gen-btn:hover{opacity:.85}
   .script-wrap{position:relative;margin-top:14px;display:none}
   .script-wrap.show{display:block}
-  .script-box{background:#060606;border:1px solid var(--border2);border-radius:4px 4px 0 0;padding:16px;font-size:11.5px;line-height:1.9;overflow-x:auto;white-space:pre;color:#ccc;max-height:480px;overflow-y:auto}
+  .script-box{background:#060606;border:1px solid var(--border2);border-radius:4px 4px 0 0;padding:16px;font-size:11px;line-height:1.9;overflow-x:auto;white-space:pre;color:#ccc;max-height:480px;overflow-y:auto}
   .script-box::-webkit-scrollbar{width:3px;height:3px}
   .script-box::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-  .s-comment{color:#3a3a3a}.s-key{color:var(--accent)}.s-str{color:#f9ca79}.s-cmd{color:#7ec8e3}
+  .s-comment{color:#3a3a3a}.s-key{color:var(--accent)}.s-cmd{color:#7ec8e3}
   .copy-bar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px}
   .copy-bar span{font-size:10px;color:var(--muted);letter-spacing:1px}
   .copy-btn{background:transparent;border:1px solid var(--border2);color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border-radius:3px;cursor:pointer;transition:.15s}
@@ -80,7 +80,7 @@
 
   <div class="note">
     <strong>Why a script?</strong> Browsers block cross-origin API calls from GitHub Pages (CORS).
-    This tool generates a complete bash script you run in your terminal — one copy-paste, fully automated.
+    This tool generates a bash script — copy it, run <code>bash script.sh</code> in your terminal. One paste, done.
   </div>
 
   <div class="card">
@@ -114,7 +114,7 @@
   <div id="sw" class="script-wrap">
     <div id="so" class="script-box"></div>
     <div class="copy-bar">
-      <span>bash script · paste in terminal · requires node + curl</span>
+      <span>save as script.sh → run: bash script.sh</span>
       <button id="cb" class="copy-btn" onclick="cp()">Copy Script</button>
     </div>
   </div>
@@ -142,48 +142,22 @@
      "params":["<span class="s-key">{YOUR_SOLANA_ADDRESS}</span>",
      {"mint":"CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH"},
      {"encoding":"jsonParsed"}]}'</div>
-      <p style="color:var(--muted);font-size:11px">Copy the <code>pubkey</code> from response.</p>
     </div>
   </div>
 
   <div class="step-card">
     <div class="step-head"><div class="num">3</div> Get Destination Token Account</div>
     <div class="step-body">
-      <p style="color:var(--muted);font-size:11px;margin-bottom:6px">Same as step 2 but use the recipient address.</p>
-      <div class="sbox">curl -s https://api.mainnet-beta.solana.com -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"getTokenAccountsByOwner",
-     "params":["<span class="s-key">{RECIPIENT_ADDRESS}</span>",
-     {"mint":"CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH"},
-     {"encoding":"jsonParsed"}]}'</div>
+      <p style="color:var(--muted);font-size:11px;margin-bottom:6px">Same as step 2 but use recipient address.</p>
     </div>
   </div>
 
   <div class="step-card">
-    <div class="step-head"><div class="num">4</div> Encode + Send</div>
-    <div class="step-body">
-      <p style="color:var(--muted);font-size:11px;margin-bottom:6px">Encode data with Node.js:</p>
-      <div class="sbox">node -e "
-  const buf = Buffer.alloc(10);
-  buf[0] = 12;
-  let amt = BigInt(<span class="s-key">{RAW_AMOUNT}</span>);
-  for(let i=0;i&lt;8;i++){buf[1+i]=Number(amt&amp;0xffn);amt>>=8n;}
-  buf[9] = 6;
-  console.log(buf.toString('base64'));
-"</div>
-      <p style="color:var(--muted);font-size:11px;margin-top:6px">Use the Script Generator tab to automate all of this.</p>
-    </div>
-  </div>
-
-  <div class="step-card">
-    <div class="step-head"><div class="num">!</div> Gas Not Sponsored?</div>
+    <div class="step-head"><div class="num">!</div> Gas Not Sponsored (account &lt; 24h)</div>
     <div class="step-body" style="font-size:12px;color:var(--muted)">
-      Error: <code>Attempt to debit an account but found no record of a prior credit</code>
-      <br><br>
-      Your account is less than 24h old. Gas sponsorship activates automatically after 24h.
-      <br><br>
-      <strong style="color:var(--text)">Option A:</strong> Wait 24h, retry.<br>
-      <strong style="color:var(--text)">Option B:</strong> Send a tiny amount of SOL to your Solana wallet, retry.
+      Error: <code>Attempt to debit an account but found no record of a prior credit</code><br><br>
+      <strong style="color:var(--text)">Fix A:</strong> Wait 24h after account creation, retry.<br>
+      <strong style="color:var(--text)">Fix B:</strong> Send a tiny SOL to your Solana wallet, retry.
     </div>
   </div>
 
@@ -217,97 +191,135 @@ function gen(){
 }
 
 function buildScript(u,t,d){
-return `#!/usr/bin/env bash
-# ─────────────────────────────────────────────────
-#  CASH Transfer — AgentWallet Auto Script
-#  Requirements: curl, node
-#  Run: bash script.sh
-# ─────────────────────────────────────────────────
-set -e
-
-USERNAME="${u}"
-TOKEN="${t}"
-DEST="${d}"
-CASH_MINT="CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH"
-TOKEN_PROG="TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-RPC="https://api.mainnet-beta.solana.com"
-API="https://frames.ag/api"
-
-echo ""; echo "╔══════════════════════════════════╗"
-echo "║  CASH Transfer · AgentWallet     ║"; echo "╚══════════════════════════════════╝"; echo ""
-
-# 1/5 Balance
-echo "[1/5] Checking balance..."
-BAL=$(curl -sf "$API/wallets/$USERNAME/balances" -H "Authorization: Bearer $TOKEN")
-[ $? -ne 0 ] && echo "✗ Failed. Check username/token." && exit 1
-
-SOL_ADDR=$(echo "$BAL" | grep -o '"address":"[^"]*"' | sed -n '2p' | cut -d'"' -f4)
-RAW=$(echo "$BAL" | grep -o '"asset":"cash"[^}]*"rawValue":"[0-9]*"' | grep -o '"rawValue":"[0-9]*"' | grep -o '[0-9]*')
-
-[ -z "$RAW" ] || [ "$RAW" = "0" ] && echo "✗ No CASH balance on $USERNAME" && exit 1
-echo "  ✓ Solana: $SOL_ADDR"
-echo "  ✓ CASH  : $RAW (raw)"
-
-# 2/5 Source token account
-echo "[2/5] Source token account..."
-SRC_JSON=$(curl -sf "$RPC" -X POST -H "Content-Type: application/json" \\
-  -d "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"method\\":\\"getTokenAccountsByOwner\\",\\"params\\":[\\"$SOL_ADDR\\",{\\"mint\\":\\"$CASH_MINT\\"},{\\"encoding\\":\\"jsonParsed\\"}]}")
-SRC=$(echo "$SRC_JSON" | grep -o '"pubkey":"[^"]*"' | head -1 | cut -d'"' -f4)
-[ -z "$SRC" ] && echo "✗ Source token account not found" && exit 1
-echo "  ✓ $SRC"
-
-# 3/5 Destination token account
-echo "[3/5] Destination token account..."
-DST_JSON=$(curl -sf "$RPC" -X POST -H "Content-Type: application/json" \\
-  -d "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"method\\":\\"getTokenAccountsByOwner\\",\\"params\\":[\\"$DEST\\",{\\"mint\\":\\"$CASH_MINT\\"},{\\"encoding\\":\\"jsonParsed\\"}]}")
-DST=$(echo "$DST_JSON" | grep -o '"pubkey":"[^"]*"' | head -1 | cut -d'"' -f4)
-[ -z "$DST" ] && echo "✗ Destination token account not found (recipient needs CASH account)" && exit 1
-echo "  ✓ $DST"
-
-# 4/5 Encode instruction
-echo "[4/5] Encoding instruction..."
-DATA=$(node -e "const b=Buffer.alloc(10);b[0]=12;let a=BigInt($RAW);for(let i=0;i<8;i++){b[1+i]=Number(a&0xffn);a>>=8n;}b[9]=6;process.stdout.write(b.toString('base64'));")
-echo "  ✓ data: $DATA"
-
-# 5/5 Send
-echo "[5/5] Broadcasting transaction..."
-TX=$(curl -sf -X POST "$API/wallets/$USERNAME/actions/contract-call" \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d "{\\"chainType\\":\\"solana\\",\\"instructions\\":[{\\"programId\\":\\"$TOKEN_PROG\\",\\"accounts\\":[{\\"pubkey\\":\\"$SRC\\",\\"isSigner\\":false,\\"isWritable\\":true},{\\"pubkey\\":\\"$CASH_MINT\\",\\"isSigner\\":false,\\"isWritable\\":false},{\\"pubkey\\":\\"$DST\\",\\"isSigner\\":false,\\"isWritable\\":true},{\\"pubkey\\":\\"$SOL_ADDR\\",\\"isSigner\\":true,\\"isWritable\\":false}],\\"data\\":\\"$DATA\\"}],\\"network\\":\\"mainnet\\"}")
-
-if echo "$TX" | grep -q '"status":"confirmed"'; then
-  HASH=$(echo "$TX" | grep -o '"txHash":"[^"]*"' | cut -d'"' -f4)
-  GAS=$(echo "$TX" | grep -o '"gasSponsored":[a-z]*' | cut -d':' -f2)
-  echo ""; echo "╔══════════════════════════════════╗"
-  echo "║  ✓ Transfer Confirmed!           ║"; echo "╚══════════════════════════════════╝"; echo ""
-  echo "  Gas free : $GAS"
-  echo "  Explorer : https://solscan.io/tx/$HASH"; echo ""
-else
-  echo "✗ Failed: $TX"
-  echo "$TX" | grep -q "prior credit" && echo "" && echo "⚠ Gas not active yet (account <24h). Wait or send SOL to: $SOL_ADDR"
-  exit 1
-fi`;
+  // NOTE: no set -e so terminal never force-closes on error
+  return [
+    '#!/usr/bin/env bash',
+    '# CASH Transfer - AgentWallet Auto Script',
+    '# Requirements: curl, node',
+    '# Run: bash script.sh   (NOT: source script.sh)',
+    '',
+    'USERNAME="'+u+'"',
+    'TOKEN="'+t+'"',
+    'DEST="'+d+'"',
+    'CASH_MINT="CASHx9KJUStyftLFWGvEVf59SGeG9sh5FfcnZMVPCASH"',
+    'TOKEN_PROG="TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"',
+    'RPC="https://api.mainnet-beta.solana.com"',
+    'API="https://frames.ag/api"',
+    '',
+    'echo ""',
+    'echo "============================================"',
+    'echo "  CASH Transfer - AgentWallet"',
+    'echo "============================================"',
+    'echo ""',
+    '',
+    '# 1/5 Check balance',
+    'echo "[1/5] Checking balance..."',
+    'BAL=$(curl -s "$API/wallets/$USERNAME/balances" -H "Authorization: Bearer $TOKEN")',
+    'if [ -z "$BAL" ]; then',
+    '  echo "ERROR: No response from API. Check internet/username/token."',
+    '  echo ""; echo "Press enter to close."; read DUMMY; exit 1',
+    'fi',
+    '',
+    'SOL_ADDR=$(echo "$BAL" | grep -o \'"address":"[^"]*"\' | sed -n \'2p\' | cut -d\'"\' -f4)',
+    'if [ -z "$SOL_ADDR" ]; then',
+    '  echo "ERROR: Could not parse Solana address. Response:"',
+    '  echo "$BAL"',
+    '  echo ""; echo "Press enter to close."; read DUMMY; exit 1',
+    'fi',
+    '',
+    'RAW=$(echo "$BAL" | grep -o \'"asset":"cash"[^}]*"rawValue":"[0-9]*"\' | grep -o \'"rawValue":"[0-9]*"\' | grep -o \'[0-9]*\' | head -1)',
+    'if [ -z "$RAW" ] || [ "$RAW" = "0" ]; then',
+    '  echo "ERROR: No CASH balance on account: $USERNAME"',
+    '  echo ""; echo "Press enter to close."; read DUMMY; exit 1',
+    'fi',
+    'echo "  OK Solana : $SOL_ADDR"',
+    'echo "  OK CASH   : $RAW (raw units)"',
+    '',
+    '# 2/5 Source token account',
+    'echo "[2/5] Fetching source token account..."',
+    'SRC_JSON=$(curl -s "$RPC" -X POST -H "Content-Type: application/json" \\',
+    '  -d "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"method\\":\\"getTokenAccountsByOwner\\",\\"params\\":[\\"$SOL_ADDR\\",{\\"mint\\":\\"$CASH_MINT\\"},{\\"encoding\\":\\"jsonParsed\\"}]}")',
+    'SRC=$(echo "$SRC_JSON" | grep -o \'"pubkey":"[^"]*"\' | head -1 | cut -d\'"\' -f4)',
+    'if [ -z "$SRC" ]; then',
+    '  echo "ERROR: Source CASH token account not found."',
+    '  echo ""; echo "Press enter to close."; read DUMMY; exit 1',
+    'fi',
+    'echo "  OK Source : $SRC"',
+    '',
+    '# 3/5 Destination token account',
+    'echo "[3/5] Fetching destination token account..."',
+    'DST_JSON=$(curl -s "$RPC" -X POST -H "Content-Type: application/json" \\',
+    '  -d "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"method\\":\\"getTokenAccountsByOwner\\",\\"params\\":[\\"$DEST\\",{\\"mint\\":\\"$CASH_MINT\\"},{\\"encoding\\":\\"jsonParsed\\"}]}")',
+    'DST=$(echo "$DST_JSON" | grep -o \'"pubkey":"[^"]*"\' | head -1 | cut -d\'"\' -f4)',
+    'if [ -z "$DST" ]; then',
+    '  echo "ERROR: Destination CASH token account not found."',
+    '  echo "  The recipient must have received CASH before to have a token account."',
+    '  echo ""; echo "Press enter to close."; read DUMMY; exit 1',
+    'fi',
+    'echo "  OK Dest   : $DST"',
+    '',
+    '# 4/5 Encode instruction',
+    'echo "[4/5] Encoding instruction data..."',
+    'DATA=$(node -e "const b=Buffer.alloc(10);b[0]=12;let a=BigInt($RAW);for(let i=0;i<8;i++){b[1+i]=Number(a&0xffn);a>>=8n;}b[9]=6;process.stdout.write(b.toString(\'base64\'));")',
+    'if [ -z "$DATA" ]; then',
+    '  echo "ERROR: Failed to encode. Is node.js installed? Run: node --version"',
+    '  echo ""; echo "Press enter to close."; read DUMMY; exit 1',
+    'fi',
+    'echo "  OK Data   : $DATA"',
+    '',
+    '# 5/5 Broadcast',
+    'echo "[5/5] Broadcasting transaction..."',
+    'TX=$(curl -s -X POST "$API/wallets/$USERNAME/actions/contract-call" \\',
+    '  -H "Authorization: Bearer $TOKEN" \\',
+    '  -H "Content-Type: application/json" \\',
+    '  -d "{\\"chainType\\":\\"solana\\",\\"instructions\\":[{\\"programId\\":\\"$TOKEN_PROG\\",\\"accounts\\":[{\\"pubkey\\":\\"$SRC\\",\\"isSigner\\":false,\\"isWritable\\":true},{\\"pubkey\\":\\"$CASH_MINT\\",\\"isSigner\\":false,\\"isWritable\\":false},{\\"pubkey\\":\\"$DST\\",\\"isSigner\\":false,\\"isWritable\\":true},{\\"pubkey\\":\\"$SOL_ADDR\\",\\"isSigner\\":true,\\"isWritable\\":false}],\\"data\\":\\"$DATA\\"}],\\"network\\":\\"mainnet\\"}")',
+    '',
+    'if echo "$TX" | grep -q \'"status":"confirmed"\'; then',
+    '  HASH=$(echo "$TX" | grep -o \'"txHash":"[^"]*"\' | cut -d\'"\' -f4)',
+    '  GAS=$(echo "$TX" | grep -o \'"gasSponsored":[a-z]*\' | cut -d\':\' -f2)',
+    '  echo ""',
+    '  echo "============================================"',
+    '  echo "  TRANSFER CONFIRMED!"',
+    '  echo "============================================"',
+    '  echo ""',
+    '  echo "  Gas free : $GAS"',
+    '  echo "  Explorer : https://solscan.io/tx/$HASH"',
+    '  echo ""',
+    'else',
+    '  echo ""',
+    '  echo "ERROR: Transaction failed."',
+    '  if echo "$TX" | grep -q "prior credit"; then',
+    '    echo ""',
+    '    echo "CAUSE: Gas sponsorship not active yet (account < 24 hours old)."',
+    '    echo "FIX A: Wait 24h after account creation, then run this script again."',
+    '    echo "FIX B: Send a small amount of SOL to: $SOL_ADDR"',
+    '  else',
+    '    echo "Details: $TX"',
+    '  fi',
+    '  echo ""',
+    '  echo "Press enter to close."; read DUMMY; exit 1',
+    'fi'
+  ].join('\n');
 }
 
 function hl(s){
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .split('\n').map(l=>{
-      if(l.trim().startsWith('#')) return `<span class="s-comment">${l}</span>`;
-      return l.replace(/\b(curl|node|grep|echo|exit|set|sed)\b/g,'<span class="s-cmd">$1</span>');
+    .split('\n').map(function(l){
+      if(l.startsWith('#')) return '<span class="s-comment">'+l+'</span>';
+      return l.replace(/\b(curl|node|grep|echo|exit|sed|read)\b/g,'<span class="s-cmd">$1</span>');
     }).join('\n');
 }
 
 function cp(){
   if(!raw)return;
-  navigator.clipboard.writeText(raw).then(()=>{
-    const b=document.getElementById('cb');
-    b.textContent='✓ Copied!';b.classList.add('copied');
-    setTimeout(()=>{b.textContent='Copy Script';b.classList.remove('copied');},2500);
+  navigator.clipboard.writeText(raw).then(function(){
+    var b=document.getElementById('cb');
+    b.textContent='Copied!';b.classList.add('copied');
+    setTimeout(function(){b.textContent='Copy Script';b.classList.remove('copied');},2500);
   });
 }
 
-document.addEventListener('keydown',e=>{if(e.key==='Enter')gen();});
+document.addEventListener('keydown',function(e){if(e.key==='Enter')gen();});
 </script>
 </body>
 </html>
